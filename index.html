@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEON YT Downloader</title>
+  <style>
+    :root {
+      --neon-cyan: #0ff;
+      --neon-pink: #f0f;
+      --neon-green: #0f0;
+      --neon-purple: #8a2be2;
+      --neon-yellow: #ff0;
+      --neon-orange: #ff7700;
+      --bg-color: #121212;
+      --bg-gradient: linear-gradient(135deg, #121212, #2d1b43);
+      --card-bg: rgba(0, 0, 0, 0.6);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    body {
+      background: var(--bg-gradient);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem;
+    }
+
+    .title {
+      font-size: 2.5rem;
+      margin: 1rem 0;
+      text-shadow: 0 0 10px var(--neon-cyan);
+      animation: glow 1.5s ease-in-out infinite alternate;
+      text-align: center;
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+      color: var(--neon-pink);
+      text-align: center;
+      text-shadow: 0 0 5px var(--neon-pink);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 800px;
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      padding: 2rem;
+      border-radius: 15px;
+      border: 2px solid var(--neon-cyan);
+      box-shadow: 0 0 20px var(--neon-cyan);
+      margin-bottom: 2rem;
+    }
+
+    .tab-container {
+      display: flex;
+      margin-bottom: 2rem;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      font-weight: bold;
+    }
+
+    .tab-audio {
+      background: rgba(0, 255, 255, 0.1);
+      color: var(--neon-cyan);
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .tab-video {
+      background: rgba(255, 0, 255, 0.1);
+      color: var(--neon-pink);
+    }
+
+    .tab.active {
+      box-shadow: inset 0 0 20px currentColor;
+    }
+
+    .tab-audio.active::after, .tab-video.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: currentColor;
+      box-shadow: 0 0 10px currentColor;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 1.5rem;
+    }
+
+    input {
+      flex: 1;
+      padding: 15px;
+      border: 2px solid var(--neon-purple);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      color: white;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    input:focus {
+      outline: none;
+      box-shadow: 0 0 15px var(--neon-purple);
+    }
+
+    button {
+      padding: 12px 25px;
+      background: transparent;
+      border: 2px solid var(--neon-green);
+      color: var(--neon-green);
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      background: var(--neon-green);
+      color: var(--bg-color);
+      box-shadow: 0 0 20px var(--neon-green);
+    }
+
+    #loader {
+      display: none;
+      text-align: center;
+      margin: 2rem 0;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      margin: 0 auto 1rem;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      border-top: 4px solid var(--neon-cyan);
+      border-right: 4px solid var(--neon-pink);
+      border-bottom: 4px solid var(--neon-green);
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    #download-options {
+      display: none;
+    }
+
+    #audio-options, #video-options {
+      display: none;
+    }
+
+    .result-container {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .thumbnail-container {
+      position: relative;
+      overflow: hidden;
+      border-radius: 10px;
+      border: 2px solid var(--neon-cyan);
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+      aspect-ratio: 16/9;
+    }
+
+    .thumbnail {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.3s ease;
+    }
+
+    .thumbnail-container:hover .thumbnail {
+      transform: scale(1.05);
+    }
+
+    .video-info {
+      background: rgba(0, 0, 0, 0.7);
+      padding: 1.5rem;
+      border-radius: 8px;
+      border-left: 3px solid var(--neon-pink);
+    }
+
+    .video-title {
+      font-size: 1.3rem;
+      margin-bottom: 0.8rem;
+      color: white;
+      text-shadow: 0 0 5px var(--neon-cyan);
+    }
+
+    .video-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 0.9rem;
+    }
+
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .meta-item i {
+      color: var(--neon-yellow);
+    }
+
+    .section-title {
+      margin: 1.5rem 0 1rem;
+      color: var(--neon-pink);
+      text-shadow: 0 0 5px var(--neon-pink);
+      font-size: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-title i {
+      font-size: 1.4rem;
+    }
+
+    .format-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 15px;
+      margin-bottom: 1.5rem;
+    }
+
+    .format-card {
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 8px;
+      border: 1px solid var(--neon-yellow);
+      padding: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+
+    .format-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 0 15px rgba(255, 255, 0, 0.3);
+    }
+
+    .format-card.selected {
+      background: rgba(255, 255, 0, 0.2);
+      border: 2px solid var(--neon-yellow);
+      box-shadow: 0 0 15px rgba(255, 255, 0, 0.5);
+    }
+
+    .format-name {
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin-bottom: 5px;
+      color: var(--neon-yellow);
+    }
+
+    .format-info {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .quality-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 1.5rem;
+    }
+
+    .quality-btn {
+      padding: 10px 15px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--neon-cyan);
+      color: var(--neon-cyan);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+    }
+
+    .quality-btn:hover {
+      background: rgba(0, 255, 255, 0.2);
+      box-shadow: 0 0 10px var(--neon-cyan);
+    }
+
+    .quality-btn.selected {
+      background: rgba(0, 255, 255, 0.3);
+      border: 2px solid var(--neon-cyan);
+      box-shadow: 0 0 10px var(--neon-cyan);
+    }
+
+    .download-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 15px;
+      margin-top: 1.5rem;
+      background: linear-gradient(45deg, var(--neon-purple), var(--neon-pink));
+      border: none;
+      color: white;
+      font-weight: bold;
+      font-size: 1.1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 15px rgba(138, 43, 226, 0.5);
+    }
+
+    .download-btn i {
+      font-size: 1.3rem;
+    }
+
+    .download-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 25px rgba(138, 43, 226, 0.7);
+    }
+
+    .footer {
+      margin-top: 2rem;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.9rem;
+      width: 100%;
+      max-width: 800px;
+    }
+
+    .footer a {
+      color: var(--neon-cyan);
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Video format specific styles */
+    .video-formats .format-card {
+      border-color: var(--neon-pink);
+    }
+
+    .video-formats .format-card.selected {
+      background: rgba(255, 0, 255, 0.2);
+      border: 2px solid var(--neon-pink);
+      box-shadow: 0 0 15px rgba(255, 0, 255, 0.5);
+    }
+
+    .video-formats .format-name {
+      color: var(--neon-pink);
+    }
+
+    /* For responsive design */
+    @keyframes glow {
+      from {
+        text-shadow: 0 0 10px var(--neon-cyan);
+      }
+      to {
+        text-shadow: 0 0 20px var(--neon-cyan), 0 0 30px var(--neon-cyan);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1.5rem;
+      }
+      
+      .title {
+        font-size: 2rem;
+      }
+      
+      .subtitle {
+        font-size: 1rem;
+      }
+      
+      .input-group {
+        flex-direction: column;
+      }
+      
+      button {
+        width: 100%;
+      }
+      
+      .format-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .result-container {
+        gap: 1.5rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .format-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .quality-options {
+        flex-direction: column;
+      }
+      
+      .quality-btn {
+        width: 100%;
+      }
+      
+      .video-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <h1 class="title">NEON YT Downloader</h1>
+  <p class="subtitle">MP3 සහ MP4 බාගත කරන්න - විශේෂාංග සමඟ</p>
+  
+  <div class="container">
+    <div class="tab-container">
+      <div class="tab tab-audio active" onclick="switchTab('audio')">
+        <i class="fas fa-music"></i> MP3 Downloader
+      </div>
+      <div class="tab tab-video" onclick="switchTab('video')">
+        <i class="fas fa-video"></i> MP4 Downloader
+      </div>
+    </div>
+
+    <div class="input-group">
+      <input type="url" id="urlInput" placeholder="YouTube URL එකක් ඇතුලත් කරන්න...">
+      <button onclick="handleFetch()"><i class="fas fa-search"></i> Fetch</button>
+    </div>
+
+    <div id="loader">
+      <div class="spinner"></div>
+      <p>YouTube වීඩියෝව පුරවමින්...</p>
+    </div>
+
+    <div id="download-options">
+      <div class="result-container">
+        <div class="thumbnail-container">
+          <img class="thumbnail" id="thumbnail" alt="Video Thumbnail">
+        </div>
+        
+        <div class="video-info">
+          <h3 class="video-title" id="videoTitle"></h3>
+          <div class="video-meta">
+            <div class="meta-item">
+              <i class="fas fa-clock"></i>
+              <span id="videoDuration">00:00</span>
+            </div>
+            <div class="meta-item">
+              <i class="fas fa-eye"></i>
+              <span id="videoViews">0 views</span>
+            </div>
+            <div class="meta-item">
+              <i class="fas fa-calendar"></i>
+              <span id="videoUploadDate">Jan 1, 2025</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Audio Options Section -->
+        <div id="audio-options">
+          <h4 class="section-title">
+            <i class="fas fa-music"></i> Audio Format තෝරන්න
+          </h4>
+          <div class="format-grid audio-formats">
+            <div class="format-card selected" onclick="selectAudioFormat(this, 'mp3')">
+              <div class="format-name">MP3</div>
+              <div class="format-info">Standard audio format<br>Best compatibility</div>
+            </div>
+            <div class="format-card" onclick="selectAudioFormat(this, 'm4a')">
+              <div class="format-name">M4A</div>
+              <div class="format-info">Better quality<br>Smaller size</div>
+            </div>
+            <div class="format-card" onclick="selectAudioFormat(this, 'wav')">
+              <div class="format-name">WAV</div>
+              <div class="format-info">Lossless quality<br>Larger file size</div>
+            </div>
+          </div>
+          
+          <h4 class="section-title">
+            <i class="fas fa-sliders-h"></i> Audio Quality තෝරන්න
+          </h4>
+          <div class="quality-options">
+            <div class="quality-btn selected" onclick="selectAudioQuality(this, '128')">
+              128 kbps - Standard
+            </div>
+            <div class="quality-btn" onclick="selectAudioQuality(this, '192')">
+              192 kbps - High
+            </div>
+            <div class="quality-btn" onclick="selectAudioQuality(this, '320')">
+              320 kbps - Premium
+            </div>
+          </div>
+          
+          <button class="download-btn" id="audio-download-btn" onclick="downloadContent('audio')">
+            <i class="fas fa-download"></i> DOWNLOAD MP3
+          </button>
+        </div>
+        
+        <!-- Video Options Section -->
+        <div id="video-options">
+          <h4 class="section-title">
+            <i class="fas fa-video"></i> Video Format තෝරන්න
+          </h4>
+          <div class="format-grid video-formats">
+            <div class="format-card selected" onclick="selectVideoFormat(this, 'mp4')">
+              <div class="format-name">MP4</div>
+              <div class="format-info">Standard video format<br>Best compatibility</div>
+            </div>
+            <div class="format-card" onclick="selectVideoFormat(this, 'webm')">
+              <div class="format-name">WEBM</div>
+              <div class="format-info">Better compression<br>Smaller size</div>
+            </div>
+            <div class="format-card" onclick="selectVideoFormat(this, 'mkv')">
+              <div class="format-name">MKV</div>
+              <div class="format-info">Advanced container<br>Multiple audio tracks</div>
+            </div>
+          </div>
+          
+          <h4 class="section-title">
+            <i class="fas fa-tv"></i> Video Resolution තෝරන්න
+          </h4>
+          <div class="quality-options">
+            <div class="quality-btn selected" onclick="selectVideoQuality(this, '360p')">
+              360p - Low
+            </div>
+            <div class="quality-btn" onclick="selectVideoQuality(this, '720p')">
+              720p - HD
+            </div>
+            <div class="quality-btn" onclick="selectVideoQuality(this, '1080p')">
+              1080p - Full HD
+            </div>
+            <div class="quality-btn" onclick="selectVideoQuality(this, '4k')">
+              4K - Ultra HD
+            </div>
+          </div>
+          
+          <button class="download-btn" id="video-download-btn" onclick="downloadContent('video')">
+            <i class="fas fa-download"></i> DOWNLOAD MP4
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="footer">
+    <p>අපගේ සේවාව භාවිතා කිරීමෙන් ඔබ අපගේ <a href="#">භාවිත කොන්දේසි</a> පිළිගන්නා බව සලකන්න</p>
+    <p>© 2025 NEON YT Downloader | Made with <i class="fas fa-heart" style="color:var(--neon-pink)"></i> in Sri Lanka</p>
+  </div>
+
+  <script>
+    let currentTab = 'audio';
+    let selectedAudioFormat = 'mp3';
+    let selectedAudioQuality = '128';
+    let selectedVideoFormat = 'mp4';
+    let selectedVideoQuality = '720p';
+    let videoData = null;
+    
+    function switchTab(tab) {
+      currentTab = tab;
+      
+      // Update tab styling
+      document.querySelector('.tab-audio').classList.toggle('active', tab === 'audio');
+      document.querySelector('.tab-video').classList.toggle('active', tab === 'video');
+      
+      // Show/hide appropriate options if video data is loaded
+      if (videoData) {
+        document.getElementById('audio-options').style.display = tab === 'audio' ? 'block' : 'none';
+        document.getElementById('video-options').style.display = tab === 'video' ? 'block' : 'none';
+      }
+    }
+    
+    function selectAudioFormat(el, format) {
+      // Remove selected class from all format cards
+      document.querySelectorAll('.audio-formats .format-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+      
+      // Add selected class to clicked card
+      el.classList.add('selected');
+      selectedAudioFormat = format;
+      
+      // Update download button text
+      updateDownloadButtonText('audio');
+    }
+    
+    function selectAudioQuality(el, quality) {
+      // Remove selected class from all quality buttons
+      document.querySelectorAll('#audio-options .quality-btn').forEach(btn => {
+        btn.classList.remove('selected');
+      });
+      
+      // Add selected class to clicked button
+      el.classList.add('selected');
+      selectedAudioQuality = quality;
+      
+      // Update download button text
+      updateDownloadButtonText('audio');
+    }
+    
+    function selectVideoFormat(el, format) {
+      // Remove selected class from all format cards
+      document.querySelectorAll('.video-formats .format-card').forEach(card => {
+        card.classList.remove('selected');
+      });
+      
+      // Add selected class to clicked card
+      el.classList.add('selected');
+      selectedVideoFormat = format;
+      
+      // Update download button text
+      updateDownloadButtonText('video');
+    }
+    
+    function selectVideoQuality(el, quality) {
+      // Remove selected class from all quality buttons
+      document.querySelectorAll('#video-options .quality-btn').forEach(btn => {
+        btn.classList.remove('selected');
+      });
+      
+      // Add selected class to clicked button
+      el.classList.add('selected');
+      selectedVideoQuality = quality;
+      
+      // Update download button text
+      updateDownloadButtonText('video');
+    }
+    
+    function updateDownloadButtonText(type) {
+      if (type === 'audio') {
+        const downloadBtn = document.getElementById('audio-download-btn');
+        downloadBtn.innerHTML = `<i class="fas fa-download"></i> DOWNLOAD ${selectedAudioFormat.toUpperCase()} (${selectedAudioQuality} kbps)`;
+      } else {
+        const downloadBtn = document.getElementById('video-download-btn');
+        downloadBtn.innerHTML = `<i class="fas fa-download"></i> DOWNLOAD ${selectedVideoFormat.toUpperCase()} (${selectedVideoQuality})`;
+      }
+    }
+
+    async function handleFetch() {
+      const url = document.getElementById('urlInput').value;
+      const loader = document.getElementById('loader');
+      const downloadOptions = document.getElementById('download-options');
+      
+      if(!url || (!url.includes('youtube.com/') && !url.includes('youtu.be/'))) {
+        showAlert('නිවැරදි YouTube URL එකක් ඇතුලත් කරන්න!');
+        return;
+      }
+
+      // Show loader and hide results
+      loader.style.display = 'block';
+      downloadOptions.style.display = 'none';
+      
+      try {
+        // Extract video ID from URL
+        let videoId;
+        if (url.includes('youtube.com/')) {
+          videoId = new URL(url).searchParams.get('v');
+        } else if (url.includes('youtu.be/')) {
+          videoId = url.split('youtu.be/')[1].split('?')[0];
+        }
+        
+        if (!videoId) {
+          throw new Error('Invalid YouTube URL');
+        }
+
+        // Simulate API fetch (in a real app, you would call your backend API)
+        await simulateApiRequest(1800); // Simulate network delay
+        
+        // Mock video data (in a real app, this would come from your API)
+        videoData = {
+          id: videoId,
+          title: "NEON YT Downloader - සාම්පල වීඩියෝව",
+          duration: "12:45",
+          views: "1,245,678",
+          uploadDate: "January 15, 2025",
+          thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+          formats: {
+            audio: ['mp3', 'm4a', 'wav'],
+            video: ['mp4', 'webm', 'mkv']
+          }
+        };
+
+        // Set video details
+        document.getElementById('thumbnail').src = videoData.thumbnail;
+        document.getElementById('videoTitle').textContent = videoData.title;
+        document.getElementById('videoDuration').textContent = videoData.duration;
+        document.getElementById('videoViews').textContent = videoData.views + ' views';
+        document.getElementById('videoUploadDate').textContent = videoData.uploadDate;
+        
+        // Hide loader and show options based on current tab
+        loader.style.display = 'none';
+        downloadOptions.style.display = 'block';
+        
+        // Show the appropriate options based on the current tab
+        document.getElementById('audio-options').style.display = currentTab === 'audio' ? 'block' : 'none';
+        document.getElementById('video-options').style.display = currentTab === 'video' ? 'block' : 'none';
+        
+        // Set default buttons text
+        updateDownloadButtonText('audio');
+        updateDownloadButtonText('video');
+        
+      } catch (error) {
+        loader.style.display = 'none';
+        showAlert('Video details ලබාගැනීමට නොහැකි විය! නිවැරදි URL එකක් ඇතුලත් කරන්න.');
+        console.error(error);
+      }
+    }
+    
+    function simulateApiRequest(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function downloadContent(type) {
+      if (!videoData) {
+        showAlert('කරුණාකර පළමුව වීඩියෝව ලබාගන්න.');
+        return;
+      }
+      
+      const downloadBtn = document.getElementById(`${type}-download-btn`);
+      const originalText = downloadBtn.innerHTML;
+      
+      downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> DOWNLOADING...';
+      downloadBtn.disabled = true;
+      downloadBtn.style.opacity = '0.7';
+      
+      try {
+        // Simulate download process with random duration
+        const downloadTime = Math.floor(Math.random() * 2000) + 1000;
+        await simulateApiRequest(downloadTime);
+        
+        let successMsg = '';
+        if (type === 'audio') {
+          successMsg = `${selectedAudioFormat.toUpperCase()} (${selectedAudioQuality} kbps) සාර්ථකව භාගත කරන ලදී!`;
+        } else {
+          successMsg = `${selectedVideoFormat.toUpperCase()} (${selectedVideoQuality}) සාර්ථකව භාගත කරන ලදී!`;
+        }
+        
+        showAlert(successMsg, 'success');
+        
+        // Reset button
+        downloadBtn.innerHTML = originalText;
+        downloadBtn.disabled = false;
+        downloadBtn.style.opacity = '1';
+        
+      } catch (error) {
+        showAlert('Download කිරීමට නොහැකි විය! නැවත උත්සාහ කරන්න.');
+        console.error(error);
+        
+        // Reset button
+        downloadBtn.innerHTML = originalText;
+        downloadBtn.disabled = false;
+        downloadBtn.style.opacity = '1';
+      }
+    }
+    
+    function showAlert(message, type = 'error') {
+      const alertElement = document.createElement('div');
+      alertElement.style.position = 'fixed';
+      alertElement.style.top = '20px';
+      alertElement.style.left = '50%';
+      alertElement.style.transform = 'translateX(-50%)';
+      alertElement.style.padding = '12px 20px';
+      alertElement.style.borderRadius = '8px';
+      alertElement.style.zIndex = '1000';
+      alertElement.style.boxShadow = '0 5px 15px rgba(0,0,0,0.3)';
+      alertElement.style.animation = 'fadeIn 0.3s ease';
+      alertElement.style.display = 'flex';
+      alertElement.style.alignItems = 'center';
+      alertElement.style.gap = '10px';
+      alertElement.style.minWidth = '300px';
+      
+      if (type === 'error') {
+        alertElement.style.background = 'rgba(255, 0, 76, 0.9)';
+        alertElement.style.border = '1px solid #ff004c';
+        alertElement.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
+      } else {
+        alertElement.style.background = 'rgba(0, 255, 76, 0.9)';
+        alertElement.style.border = '1px solid #00ff4c';
+        alertElement.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
+      }
+      
+      document.body.appendChild(alertElement);
+      
+      setTimeout(() => {
+        alertElement.style.animation = 'fadeOut 0.3s ease forwards';
+        setTimeout(() => {
+          document.body.removeChild(alertElement);
+        }, 300);
+      }, 3000);
+    }
+    
+    // Add animations to the head
+    document.head.insertAdjacentHTML('beforeend', `
+      <style>
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes fadeOut {
+          from { opacity: 1; }
+          to { opacity: 0; }
+        }
+      </style>
+    `);
+  </script>
+</body>
+  </html>
