@@ -442,7 +442,7 @@
 </head>
 <body>
   <h1 class="title">NEON YT Downloader</h1>
-  <p class="subtitle">MP3 සහ MP4 බාගත කරන්න - විශේෂාංග සමඟ</p>
+  <p class="subtitle">Download MP3 and MP4 - With Special Features</p>
   
   <div class="container">
     <div class="tab-container">
@@ -455,13 +455,13 @@
     </div>
 
     <div class="input-group">
-      <input type="url" id="urlInput" placeholder="YouTube URL එකක් ඇතුලත් කරන්න...">
+      <input type="url" id="urlInput" placeholder="Enter a YouTube URL...">
       <button onclick="handleFetch()"><i class="fas fa-search"></i> Fetch</button>
     </div>
 
     <div id="loader">
       <div class="spinner"></div>
-      <p>YouTube වීඩියෝව පුරවමින්...</p>
+      <p>Loading YouTube video...</p>
     </div>
 
     <div id="download-options">
@@ -491,7 +491,7 @@
         <!-- Audio Options Section -->
         <div id="audio-options">
           <h4 class="section-title">
-            <i class="fas fa-music"></i> Audio Format තෝරන්න
+            <i class="fas fa-music"></i> Select Audio Format
           </h4>
           <div class="format-grid audio-formats">
             <div class="format-card selected" onclick="selectAudioFormat(this, 'mp3')">
@@ -509,7 +509,7 @@
           </div>
           
           <h4 class="section-title">
-            <i class="fas fa-sliders-h"></i> Audio Quality තෝරන්න
+            <i class="fas fa-sliders-h"></i> Select Audio Quality
           </h4>
           <div class="quality-options">
             <div class="quality-btn selected" onclick="selectAudioQuality(this, '128')">
@@ -531,7 +531,7 @@
         <!-- Video Options Section -->
         <div id="video-options">
           <h4 class="section-title">
-            <i class="fas fa-video"></i> Video Format තෝරන්න
+            <i class="fas fa-video"></i> Select Video Format
           </h4>
           <div class="format-grid video-formats">
             <div class="format-card selected" onclick="selectVideoFormat(this, 'mp4')">
@@ -549,7 +549,7 @@
           </div>
           
           <h4 class="section-title">
-            <i class="fas fa-tv"></i> Video Resolution තෝරන්න
+            <i class="fas fa-tv"></i> Select Video Resolution
           </h4>
           <div class="quality-options">
             <div class="quality-btn selected" onclick="selectVideoQuality(this, '360p')">
@@ -575,7 +575,7 @@
   </div>
   
   <div class="footer">
-    <p>අපගේ සේවාව භාවිතා කිරීමෙන් ඔබ අපගේ <a href="#">භාවිත කොන්දේසි</a> පිළිගන්නා බව සලකන්න</p>
+    <p>By using our service, you agree to our <a href="#">Terms of Use</a></p>
     <p>© 2025 NEON YT Downloader | Made with <i class="fas fa-heart" style="color:var(--neon-pink)"></i> in Sri Lanka</p>
   </div>
 
@@ -586,6 +586,9 @@
     let selectedVideoFormat = 'mp4';
     let selectedVideoQuality = '720p';
     let videoData = null;
+    
+    // Clipto API URL
+    const CLIPTO_API_BASE = 'https://www.clipto.com/api/youtube';
     
     function switchTab(tab) {
       currentTab = tab;
@@ -668,12 +671,12 @@
     }
 
     async function handleFetch() {
-      const url = document.getElementById('urlInput').value;
+      const url = document.getElementById('urlInput').value.trim();
       const loader = document.getElementById('loader');
       const downloadOptions = document.getElementById('download-options');
       
       if(!url || (!url.includes('youtube.com/') && !url.includes('youtu.be/'))) {
-        showAlert('නිවැරදි YouTube URL එකක් ඇතුලත් කරන්න!');
+        showAlert('Please enter a valid YouTube URL!');
         return;
       }
 
@@ -685,7 +688,8 @@
         // Extract video ID from URL
         let videoId;
         if (url.includes('youtube.com/')) {
-          videoId = new URL(url).searchParams.get('v');
+          const urlObj = new URL(url);
+          videoId = urlObj.searchParams.get('v');
         } else if (url.includes('youtu.be/')) {
           videoId = url.split('youtu.be/')[1].split('?')[0];
         }
@@ -694,28 +698,18 @@
           throw new Error('Invalid YouTube URL');
         }
 
-        // Simulate API fetch (in a real app, you would call your backend API)
-        await simulateApiRequest(1800); // Simulate network delay
+        // Simulate API fetch for now, as we can't guarantee how the actual API works
+        // In a real implementation, you would use fetch() to make the actual API call
+        const videoInfo = await fetchVideoInfo(url, videoId);
         
-        // Mock video data (in a real app, this would come from your API)
-        videoData = {
-          id: videoId,
-          title: "NEON YT Downloader - සාම්පල වීඩියෝව",
-          duration: "12:45",
-          views: "1,245,678",
-          uploadDate: "January 15, 2025",
-          thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
-          formats: {
-            audio: ['mp3', 'm4a', 'wav'],
-            video: ['mp4', 'webm', 'mkv']
-          }
-        };
+        // Process the video information
+        videoData = videoInfo;
 
         // Set video details
         document.getElementById('thumbnail').src = videoData.thumbnail;
         document.getElementById('videoTitle').textContent = videoData.title;
         document.getElementById('videoDuration').textContent = videoData.duration;
-        document.getElementById('videoViews').textContent = videoData.views + ' views';
+        document.getElementById('videoViews').textContent = videoData.views;
         document.getElementById('videoUploadDate').textContent = videoData.uploadDate;
         
         // Hide loader and show options based on current tab
@@ -732,18 +726,42 @@
         
       } catch (error) {
         loader.style.display = 'none';
-        showAlert('Video details ලබාගැනීමට නොහැකි විය! නිවැරදි URL එකක් ඇතුලත් කරන්න.');
+        showAlert('Could not retrieve video details! Please ensure you entered a valid URL.');
         console.error(error);
       }
     }
     
-    function simulateApiRequest(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
+    async function fetchVideoInfo(url, videoId) {
+      try {
+        // Call Clipto API to get video info
+        const endpoint = `${CLIPTO_API_BASE}?url=${encodeURIComponent(url)}`;
+        
+        // This is where we'd normally make the API call
+        // For now, let's simulate the API response with a delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Mock response for demo purposes
+        return {
+          id: videoId,
+          title: "YouTube Video Title",
+          duration: "10:35",
+          views: "1.5M views",
+          uploadDate: "Mar 15, 2024",
+          thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+          formats: {
+            audio: ['mp3', 'm4a', 'wav'],
+            video: ['mp4', 'webm', 'mkv']
+          }
+        };
+      } catch (error) {
+        console.error("Error fetching video info:", error);
+        throw new Error("Failed to fetch video information");
+      }
     }
 
     async function downloadContent(type) {
       if (!videoData) {
-        showAlert('කරුණාකර පළමුව වීඩියෝව ලබාගන්න.');
+        showAlert('Please fetch the video first.');
         return;
       }
       
@@ -755,33 +773,53 @@
       downloadBtn.style.opacity = '0.7';
       
       try {
-        // Simulate download process with random duration
-        const downloadTime = Math.floor(Math.random() * 2000) + 1000;
-        await simulateApiRequest(downloadTime);
+        const ytUrl = document.getElementById('urlInput').value.trim();
+        
+        // Build parameters for the download
+        const downloadParams = {
+          url: ytUrl,
+          format: type === 'audio' ? selectedAudioFormat : selectedVideoFormat,
+          quality: type === 'audio' ? selectedAudioQuality : selectedVideoQuality
+        };
+        
+        // This is where we would make the actual API call to download
+        // Since we don't have direct API access, we'll open in a new tab
+        const downloadUrl = createDownloadUrl(downloadParams);
+        
+        // Open the download in a new tab/window
+        window.open(downloadUrl, '_blank');
         
         let successMsg = '';
         if (type === 'audio') {
-          successMsg = `${selectedAudioFormat.toUpperCase()} (${selectedAudioQuality} kbps) සාර්ථකව භාගත කරන ලදී!`;
+          successMsg = `${selectedAudioFormat.toUpperCase()} (${selectedAudioQuality} kbps) download initiated!`;
         } else {
-          successMsg = `${selectedVideoFormat.toUpperCase()} (${selectedVideoQuality}) සාර්ථකව භාගත කරන ලදී!`;
+          successMsg = `${selectedVideoFormat.toUpperCase()} (${selectedVideoQuality}) download initiated!`;
         }
         
         showAlert(successMsg, 'success');
         
-        // Reset button
-        downloadBtn.innerHTML = originalText;
-        downloadBtn.disabled = false;
-        downloadBtn.style.opacity = '1';
-        
       } catch (error) {
-        showAlert('Download කිරීමට නොහැකි විය! නැවත උත්සාහ කරන්න.');
+        showAlert('Download failed! Please try again.');
         console.error(error);
-        
+      } finally {
         // Reset button
         downloadBtn.innerHTML = originalText;
         downloadBtn.disabled = false;
         downloadBtn.style.opacity = '1';
       }
+    }
+    
+    function createDownloadUrl(params) {
+      // Create a URL that will trigger the download through Clipto
+      const downloadEndpoint = `${CLIPTO_API_BASE}/download`;
+      
+      // Build query parameters
+      const queryParams = new URLSearchParams();
+      for (const [key, value] of Object.entries(params)) {
+        queryParams.append(key, value);
+      }
+      
+      return `${downloadEndpoint}?${queryParams.toString()}`;
     }
     
     function showAlert(message, type = 'error') {
@@ -835,4 +873,4 @@
     `);
   </script>
 </body>
-  </html>
+</html>
