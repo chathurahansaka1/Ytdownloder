@@ -103,10 +103,6 @@
             margin-top: 10px;
         }
         
-        .btn-full {
-            width: 100%;
-        }
-        
         .download-result {
             background-color: white;
             padding: 20px;
@@ -281,7 +277,10 @@
                 <input type="text" id="youtube-url" placeholder="https://www.youtube.com/watch?v=example">
             </div>
             
-            <button class="btn btn-full" id="fetch-btn">Fetch Video</button>
+            <div class="btn-group">
+                <button class="btn" id="fetch-btn">Fetch Video</button>
+                <button class="btn" id="clear-btn">Clear</button>
+            </div>
             
             <div class="loader" id="loader">
                 <div></div>
@@ -314,6 +313,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const urlInput = document.getElementById('youtube-url');
             const fetchBtn = document.getElementById('fetch-btn');
+            const clearBtn = document.getElementById('clear-btn');
             const loader = document.getElementById('loader');
             const downloadResult = document.getElementById('download-result');
             const downloadLinks = document.getElementById('download-links');
@@ -372,30 +372,24 @@
             
             // Function to create a download proxy
             function createDownloadProxy(url, filename) {
-                // Create an iframe for download
                 const iframe = document.createElement('iframe');
                 iframe.style.display = 'none';
                 document.body.appendChild(iframe);
                 
-                // Create a form within the iframe
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = url;
                 
-                // Create and append the video URL as a hidden input
                 const input = document.createElement('input');
                 input.type = 'hidden';
                 input.name = 'url';
                 input.value = urlInput.value.trim();
                 
-                // Append to body
                 form.appendChild(input);
                 iframe.contentDocument.body.appendChild(form);
                 
-                // Submit the form
                 form.submit();
                 
-                // Clean up after a delay
                 setTimeout(() => {
                     document.body.removeChild(iframe);
                 }, 5000);
@@ -406,17 +400,14 @@
             // Function to fetch video information
             async function fetchVideoInfo(url) {
                 try {
-                    // Validate YouTube URL
                     if (!youtubeRegex.test(url)) {
                         showError('Please enter a valid YouTube URL');
                         return;
                     }
                     
-                    // Show loader
                     loader.style.display = 'block';
                     downloadResult.style.display = 'none';
                     
-                    // Make the actual API call
                     const response = await fetch(API_URL, {
                         method: 'POST',
                         headers: {
@@ -430,39 +421,22 @@
                         throw new Error('Failed to fetch video information');
                     }
                     
-                    // Safely parse the JSON response
-                    let data;
-                    try {
-                        const text = await response.text();
-                        data = text ? JSON.parse(text) : {};
-                    } catch (parseError) {
-                        console.error('Error parsing JSON:', parseError);
-                        data = {};
-                    }
+                    const data = await response.json();
                     
-                    // If API didn't return expected data, use video ID for thumbnail
                     const videoId = extractVideoId(url);
                     if (videoId) {
                         videoThumbnail.src = getVideoThumbnail(videoId);
                     }
                     
-                    // Update video info if available
                     videoTitle.textContent = data.title || 'YouTube Video';
                     videoAuthor.textContent = data.author || 'YouTube Channel';
                     
-                    // Clear previous download links
                     downloadLinks.innerHTML = '';
                     
-                    // Check if formats are available
                     if (data.formats && Array.isArray(data.formats) && data.formats.length > 0) {
-                        // Add download links for each format
                         data.formats.forEach((format, index) => {
                             const link = document.createElement('a');
-                            
-                            // Determine the appropriate URL
                             const downloadUrl = format.url || API_URL;
-                            
-                            // Create filename from video title and format
                             const safeTitle = (data.title || 'youtube_video').replace(/[^\w\s]/gi, '').replace(/\s+/g, '_');
                             const extension = format.type ? format.type.split('/')[1] : 'mp4';
                             const filename = `${safeTitle}_${format.quality || index}.${extension}`;
@@ -470,19 +444,16 @@
                             link.href = downloadUrl;
                             link.className = 'download-link';
                             
-                            // Prepare the link text
                             const quality = format.quality || (format.type && format.type.includes('audio') ? 'Audio' : 'Video');
                             const type = format.type || 'video/mp4';
                             const size = format.size ? format.size : 'Unknown size';
                             
                             link.textContent = `${quality} (${type}) - ${size}`;
                             
-                            // Setting up the download
                             if (format.url) {
                                 link.setAttribute('download', filename);
                                 link.setAttribute('target', '_blank');
                             } else {
-                                // If direct URL is not provided, use our proxy approach
                                 link.addEventListener('click', function(e) {
                                     e.preventDefault();
                                     createDownloadProxy(API_URL, filename);
@@ -493,44 +464,34 @@
                             downloadLinks.appendChild(link);
                         });
                     } else {
-                        // Fallback options if API doesn't return formats
                         createFallbackOptions(url, videoId);
                     }
                     
-                    // Show results
                     downloadResult.style.display = 'block';
                     showSuccess('Video information fetched successfully!');
                     
                 } catch (error) {
                     console.error('Error:', error);
                     
-                    // Extract video ID for fallback
                     const videoId = extractVideoId(url);
                     if (videoId) {
                         videoThumbnail.src = getVideoThumbnail(videoId);
                         videoTitle.textContent = 'YouTube Video';
                         videoAuthor.textContent = 'YouTube Channel';
-                        
-                        // Create fallback download options
                         createFallbackOptions(url, videoId);
-                        
-                        // Still show the result container
                         downloadResult.style.display = 'block';
                     }
                     
                     showError('Failed to fetch detailed video information. Using basic options.');
                 } finally {
-                    // Hide loader
                     loader.style.display = 'none';
                 }
             }
             
             // Function to create fallback download options
             function createFallbackOptions(url, videoId) {
-                // Clear previous links
                 downloadLinks.innerHTML = '';
                 
-                // Create direct API downloads for common formats
                 const formats = [
                     { quality: '720p', type: 'video/mp4', label: 'HD Video (720p)' },
                     { quality: '480p', type: 'video/mp4', label: 'Standard Video (480p)' },
@@ -542,46 +503,39 @@
                     const link = document.createElement('a');
                     link.className = 'download-link';
                     link.textContent = format.label;
+                    link.href = '#';
                     
-                    // Create a form submission approach for download
-                    link.href = '#'; // Placeholder
                     link.addEventListener('click', function(e) {
                         e.preventDefault();
                         
-                        // Create a form to submit directly to the API
                         const form = document.createElement('form');
                         form.method = 'POST';
                         form.action = API_URL;
                         form.target = '_blank';
                         
-                        // Add URL parameter
                         const urlInput = document.createElement('input');
                         urlInput.type = 'hidden';
                         urlInput.name = 'url';
                         urlInput.value = url;
                         
-                        // Add format parameter
                         const formatInput = document.createElement('input');
                         formatInput.type = 'hidden';
                         formatInput.name = 'format';
+                        form.appendChild(formatInput);
                         formatInput.value = format.quality;
                         
-                        // Add type parameter
                         const typeInput = document.createElement('input');
                         typeInput.type = 'hidden';
                         typeInput.name = 'type';
                         typeInput.value = format.type;
                         
-                        // Append inputs to form
                         form.appendChild(urlInput);
                         form.appendChild(formatInput);
                         form.appendChild(typeInput);
                         
-                        // Append form to body and submit
                         document.body.appendChild(form);
                         form.submit();
                         
-                        // Remove form
                         setTimeout(() => {
                             document.body.removeChild(form);
                         }, 100);
@@ -602,6 +556,14 @@
                 }
                 
                 fetchVideoInfo(url);
+            });
+            
+            // Event listener for clear button
+            clearBtn.addEventListener('click', function() {
+                urlInput.value = '';
+                downloadResult.style.display = 'none';
+                errorMessage.style.display = 'none';
+                successMessage.style.display = 'none';
             });
             
             // Event listener for Enter key in input field
