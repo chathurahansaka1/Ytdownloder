@@ -7,88 +7,117 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
+            background-color: #f0f2f5;
             margin: 0;
-        }
-        form {
+            padding: 0;
             display: flex;
-            flex-direction: column;
-            width: 300px;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
-        input, button {
-            margin: 10px 0;
-            padding: 10px;
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
         }
-        #loading {
+
+        h1 {
+            color: #2c3e50;
+        }
+
+        form {
             margin-top: 20px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
+
+        #result {
+            margin-top: 20px;
+            font-size: 16px;
+        }
+
+        #result a {
+            color: #27ae60;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        #result a:hover {
+            text-decoration: underline;
+        }
+
+        #error {
+            color: #e74c3c;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
-    <h1>Download YouTube Video</h1>
-    <form id="downloadForm">
-        <label for="url">YouTube Video URL:</label>
-        <input type="text" id="url" name="url" placeholder="https://www.youtube.com/watch?v=..." required>
-        <button type="submit">Download</button>
-    </form>
-    <div id="loading" style="display: none;">Loading...</div>
-    <div id="result"></div>
+    <div class="container">
+        <h1>YouTube Video Downloader</h1>
+        <form id="downloadForm">
+            <input type="text" id="videoUrl" placeholder="Enter YouTube Video URL" required>
+            <button type="submit">Download</button>
+        </form>
+        <div id="result"></div>
+    </div>
+
     <script>
-        document.getElementById('downloadForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('result').innerText = '';
-            const url = document.getElementById('url').value;
-            fetch('https://www.clipto.com/api/youtube', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ url: url })
-            })
-            .then(response => {
-                const contentType = response.headers.get('content-type');
-                if (contentType && contentType.includes('application/json')) {
-                    return response.json().then(data => ({ data, isJson: true }));
-                } else {
-                    const disposition = response.headers.get('content-disposition');
-                    let filename = 'video.mp4';
-                    if (disposition && disposition.includes('filename=')) {
-                        filename = disposition.split('filename=')[1].replace(/"/g, '');
-                    }
-                    return response.blob().then(blob => ({ blob, filename, isJson: false }));
+        document.getElementById('downloadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const videoUrl = document.getElementById('videoUrl').value.trim();
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = ''; // Clear previous results
+
+            try {
+                const response = await fetch('https://www.clipto.com/api/youtube', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url: videoUrl }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data from the API');
                 }
-            })
-            .then(({ data, blob, filename, isJson }) => {
-                document.getElementById('loading').style.display = 'none';
-                if (isJson) {
-                    if (data.error) {
-                        document.getElementById('result').innerText = 'Error: ' + data.error;
-                    } else if (data.downloadLink) {
-                        window.location.href = data.downloadLink;
-                    } else {
-                        document.getElementById('result').innerText = 'Error: Could not get download link.';
-                    }
+
+                const data = await response.json();
+                
+                // Assuming the API returns a "url" field with the download link
+                if (data.url) {
+                    resultDiv.innerHTML = `
+                        <a href="${data.url}" download>Download Video</a>
+                    `;
                 } else {
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = filename;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
+                    throw new Error('Download link not found in API response');
                 }
-            })
-            .catch(error => {
-                document.getElementById('loading').style.display = 'none';
-                console.error('Error:', error);
-                document.getElementById('result').innerText = 'An error occurred while fetching the download link.';
-            });
+            } catch (error) {
+                resultDiv.innerHTML = `<div id="error">${error.message}</div>`;
+            }
         });
     </script>
 </body>
