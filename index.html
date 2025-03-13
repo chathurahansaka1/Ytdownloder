@@ -361,6 +361,48 @@
                 return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
             }
             
+            // Helper function to format file size
+            function formatFileSize(bytes) {
+                if (!bytes) return 'Unknown size';
+                const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+                if (bytes === 0) return '0 Byte';
+                const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+                return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
+            }
+            
+            // Function to create a download proxy
+            function createDownloadProxy(url, filename) {
+                // Create an iframe for download
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+                
+                // Create a form within the iframe
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = url;
+                
+                // Create and append the video URL as a hidden input
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'url';
+                input.value = urlInput.value.trim();
+                
+                // Append to body
+                form.appendChild(input);
+                iframe.contentDocument.body.appendChild(form);
+                
+                // Submit the form
+                form.submit();
+                
+                // Clean up after a delay
+                setTimeout(() => {
+                    document.body.removeChild(iframe);
+                }, 5000);
+                
+                return true;
+            }
+            
             // Function to fetch video information
             async function fetchVideoInfo(url) {
                 try {
@@ -374,58 +416,7 @@
                     loader.style.display = 'block';
                     downloadResult.style.display = 'none';
                     
-                    // Mock the API response for preview purposes
-                    // In a real implementation, you would use fetch to call the API
-                    
-                    // Simulate API call delay
-                    await new Promise(resolve => setTimeout(resolve, 1500));
-                    
-                    // Extract video ID for thumbnail
-                    const videoId = extractVideoId(url);
-                    
-                    if (!videoId) {
-                        showError('Could not extract video ID from URL');
-                        loader.style.display = 'none';
-                        return;
-                    }
-                    
-                    // Set video thumbnail
-                    videoThumbnail.src = getVideoThumbnail(videoId);
-                    
-                    // Mock response data
-                    const mockResponseData = {
-                        title: 'Sample YouTube Video Title',
-                        author: 'Sample Channel Name',
-                        formats: [
-                            {
-                                quality: '720p',
-                                type: 'video/mp4',
-                                size: '24.5 MB',
-                                url: '#download-720p'
-                            },
-                            {
-                                quality: '480p',
-                                type: 'video/mp4',
-                                size: '16.2 MB',
-                                url: '#download-480p'
-                            },
-                            {
-                                quality: '360p',
-                                type: 'video/mp4',
-                                size: '10.8 MB',
-                                url: '#download-360p'
-                            },
-                            {
-                                quality: 'Audio only',
-                                type: 'audio/mp3',
-                                size: '4.2 MB',
-                                url: '#download-audio'
-                            }
-                        ]
-                    };
-                    
-                    // In a real implementation, this would be the fetch call:
-                    /*
+                    // Make the actual API call
                     const response = await fetch(API_URL, {
                         method: 'POST',
                         headers: {
@@ -439,35 +430,63 @@
                     }
                     
                     const data = await response.json();
-                    */
                     
-                    // Process the mock response
-                    const data = mockResponseData;
+                    // If API didn't return expected data, use video ID for thumbnail
+                    const videoId = extractVideoId(url);
+                    if (videoId) {
+                        videoThumbnail.src = getVideoThumbnail(videoId);
+                    }
                     
-                    // Update video info
-                    videoTitle.textContent = data.title;
-                    videoAuthor.textContent = data.author;
+                    // Update video info if available
+                    videoTitle.textContent = data.title || 'YouTube Video';
+                    videoAuthor.textContent = data.author || 'YouTube Channel';
                     
                     // Clear previous download links
                     downloadLinks.innerHTML = '';
                     
-                    // Add download links
-                    data.formats.forEach(format => {
-                        const link = document.createElement('a');
-                        link.href = format.url;
-                        link.className = 'download-link';
-                        link.textContent = `${format.quality} (${format.type}) - ${format.size}`;
-                        link.setAttribute('download', '');
-                        link.addEventListener('click', function(e) {
-                            // In preview mode, prevent actual download
-                            e.preventDefault();
-                            showSuccess(`Download started for ${format.quality}`);
+                    // Check if formats are available
+                    if (data.formats && Array.isArray(data.formats) && data.formats.length > 0) {
+                        // Add download links for each format
+                        data.formats.forEach((format, index) => {
+                            const link = document.createElement('a');
                             
-                            // In a real implementation, this would trigger the download
-                            // by allowing the link to execute normally without preventDefault
+                            // Determine the appropriate URL
+                            const downloadUrl = format.url || API_URL;
+                            
+                            // Create filename from video title and format
+                            const safeTitle = (data.title || 'youtube_video').replace(/[^\w\s]/gi, '').replace(/\s+/g, '_');
+                            const extension = format.type ? format.type.split('/')[1] : 'mp4';
+                            const filename = `${safeTitle}_${format.quality || index}.${extension}`;
+                            
+                            link.href = downloadUrl;
+                            link.className = 'download-link';
+                            
+                            // Prepare the link text
+                            const quality = format.quality || (format.type && format.type.includes('audio') ? 'Audio' : 'Video');
+                            const type = format.type || 'video/mp4';
+                            const size = format.size ? format.size : 'Unknown size';
+                            
+                            link.textContent = `${quality} (${type}) - ${size}`;
+                            
+                            // Setting up the download
+                            if (format.url) {
+                                link.setAttribute('download', filename);
+                                link.setAttribute('target', '_blank');
+                            } else {
+                                // If direct URL is not provided, use our proxy approach
+                                link.addEventListener('click', function(e) {
+                                    e.preventDefault();
+                                    createDownloadProxy(API_URL, filename);
+                                    showSuccess(`Download started for ${quality}`);
+                                });
+                            }
+                            
+                            downloadLinks.appendChild(link);
                         });
-                        downloadLinks.appendChild(link);
-                    });
+                    } else {
+                        // Fallback options if API doesn't return formats
+                        createFallbackOptions(url, videoId);
+                    }
                     
                     // Show results
                     downloadResult.style.display = 'block';
@@ -475,11 +494,94 @@
                     
                 } catch (error) {
                     console.error('Error:', error);
-                    showError('Failed to fetch video information. Please try again.');
+                    
+                    // Extract video ID for fallback
+                    const videoId = extractVideoId(url);
+                    if (videoId) {
+                        videoThumbnail.src = getVideoThumbnail(videoId);
+                        videoTitle.textContent = 'YouTube Video';
+                        videoAuthor.textContent = 'YouTube Channel';
+                        
+                        // Create fallback download options
+                        createFallbackOptions(url, videoId);
+                        
+                        // Still show the result container
+                        downloadResult.style.display = 'block';
+                    }
+                    
+                    showError('Failed to fetch detailed video information. Using basic options.');
                 } finally {
                     // Hide loader
                     loader.style.display = 'none';
                 }
+            }
+            
+            // Function to create fallback download options
+            function createFallbackOptions(url, videoId) {
+                // Clear previous links
+                downloadLinks.innerHTML = '';
+                
+                // Create direct API downloads for common formats
+                const formats = [
+                    { quality: '720p', type: 'video/mp4', label: 'HD Video (720p)' },
+                    { quality: '480p', type: 'video/mp4', label: 'Standard Video (480p)' },
+                    { quality: '360p', type: 'video/mp4', label: 'Low Quality Video (360p)' },
+                    { quality: 'Audio', type: 'audio/mp3', label: 'Audio Only (MP3)' }
+                ];
+                
+                formats.forEach(format => {
+                    const link = document.createElement('a');
+                    link.className = 'download-link';
+                    link.textContent = format.label;
+                    
+                    // Create a form submission approach for download
+                    link.href = '#'; // Placeholder
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        
+                        // Create a form to submit directly to the API
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = API_URL;
+                        form.target = '_blank';
+                        
+                        // Add URL parameter
+                        const urlInput = document.createElement('input');
+                        urlInput.type = 'hidden';
+                        urlInput.name = 'url';
+                        urlInput.value = url;
+                        
+                        // Add format parameter
+                        const formatInput = document.createElement('input');
+                        formatInput.type = 'hidden';
+                        formatInput.name = 'format';
+                        formatInput.value = format.quality;
+                        
+                        // Add type parameter
+                        const typeInput = document.createElement('input');
+                        typeInput.type = 'hidden';
+                        typeInput.name = 'type';
+                        typeInput.value = format.type;
+                        
+                        // Append inputs to form
+                        form.appendChild(urlInput);
+                        form.appendChild(formatInput);
+                        form.appendChild(typeInput);
+                        
+                        // Append form to body and submit
+                        document.body.appendChild(form);
+                        form.submit();
+                        
+                        // Remove form
+                        setTimeout(() => {
+                            document.body.removeChild(form);
+                        }, 100);
+                        
+                        showSuccess(`Download started for ${format.label}`);
+                    });
+                    
+                    downloadLinks.appendChild(link);
+                });
             }
             
             // Event listener for fetch button
@@ -499,27 +601,6 @@
                     fetchBtn.click();
                 }
             });
-            
-            // Function to actually implement the API
-            async function realImplementation(url) {
-                try {
-                    const response = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ url: url })
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error('Failed to fetch video information');
-                    }
-                    
-                    return await response.json();
-                } catch (error) {
-                    throw error;
-                }
-            }
         });
     </script>
 </body>
