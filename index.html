@@ -19,7 +19,7 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            width: 300px;
+            width: 350px;
         }
         input[type="text"] {
             padding: 10px;
@@ -29,6 +29,12 @@
             border-radius: 5px;
             border: 1px solid #ccc;
         }
+        #appLogo {
+            width: 100px;
+            height: 100px;
+            margin-top: 20px;
+            display: none; /* Initially hidden */
+        }
         #downloadBtn {
             background-color: #007bff;
             color: #fff;
@@ -37,6 +43,8 @@
             cursor: pointer;
             border-radius: 5px;
             font-size: 16px;
+            margin-top: 20px;
+            display: none; /* Initially hidden */
         }
         #downloadBtn:hover {
             background-color: #0056b3;
@@ -52,6 +60,7 @@
     <div class="container">
         <h1>APK සෙවීම සහ බාගත කිරීම</h1>
         <input type="text" id="appSearch" placeholder="ඇප් නාමය හෝ ID ඇතුළත් කරන්න">
+        <img id="appLogo" src="" alt="App Logo">
         <button id="downloadBtn" disabled>බාගත කරන්න</button>
         <p id="status"></p>
     </div>
@@ -60,13 +69,42 @@
         const downloadBtn = document.getElementById("downloadBtn");
         const statusText = document.getElementById("status");
         const appSearchInput = document.getElementById("appSearch");
+        const appLogo = document.getElementById("appLogo");
 
         // Enable the "Download" button when the user enters app ID or name
         appSearchInput.addEventListener("input", function() {
-            if (appSearchInput.value.trim() !== "") {
-                downloadBtn.disabled = false;
+            const appId = appSearchInput.value.trim();
+
+            if (appId) {
+                // Fetch app logo and show the download button
+                fetch(`https://play.google.com/store/apps/details?id=${appId}`)
+                    .then(response => response.text())
+                    .then(data => {
+                        const regex = /"logo_url":"(https:\/\/lh3\.googleusercontent\.com\/[^"]+)"/;
+                        const matches = data.match(regex);
+
+                        if (matches) {
+                            // Set app logo and show button
+                            appLogo.src = matches[1];
+                            appLogo.style.display = 'block';
+                            downloadBtn.style.display = 'inline-block';
+                            downloadBtn.disabled = false;
+                            statusText.textContent = "";
+                        } else {
+                            appLogo.style.display = 'none';
+                            downloadBtn.style.display = 'none';
+                            statusText.textContent = "ඇප් ලාංඡනයක් හමු නොවී.";
+                        }
+                    })
+                    .catch(err => {
+                        appLogo.style.display = 'none';
+                        downloadBtn.style.display = 'none';
+                        statusText.textContent = "ඇප් සොයා ගැනීමේ දෝෂයක් ඇති විය.";
+                    });
             } else {
-                downloadBtn.disabled = true;
+                appLogo.style.display = 'none';
+                downloadBtn.style.display = 'none';
+                statusText.textContent = "";
             }
         });
 
