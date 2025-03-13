@@ -12,6 +12,7 @@
             align-items: center;
             height: 100vh;
             background-color: #f4f4f9;
+            margin: 0;
         }
         .container {
             text-align: center;
@@ -41,6 +42,10 @@
         #downloadBtn:hover {
             background-color: #0056b3;
         }
+        #downloadBtn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
         #status {
             margin-top: 20px;
             font-size: 14px;
@@ -63,31 +68,47 @@
 
         // Enable the "Download" button when the user enters app ID or name
         appSearchInput.addEventListener("input", function() {
-            if (appSearchInput.value.trim() !== "") {
-                downloadBtn.disabled = false;
-            } else {
-                downloadBtn.disabled = true;
-            }
+            downloadBtn.disabled = this.value.trim() === "";
         });
 
         // When the "Download" button is clicked
-        downloadBtn.addEventListener("click", function() {
+        downloadBtn.addEventListener("click", async function() {
             const appId = appSearchInput.value.trim(); // Get the app ID or name from the input
-            if (appId) {
-                statusText.textContent = "බාගැනීම ආරම්භවෙයි...";
-                const apiUrl = `https://www.dark-yasiya-api.site/download/apk?id=${appId}`; // API URL with dynamic app ID
-
-                // Creating a temporary <a> tag for the download
-                const link = document.createElement("a");
-                link.href = apiUrl;
-                link.download = appId; // Optionally, set a filename
-                link.click(); // Initiates the download
-
-                setTimeout(function() {
-                    statusText.textContent = "බාගැනීම සම්පූර්ණ වුණි!";
-                }, 5000); // Show completion message after 5 seconds
-            } else {
+            if (!appId) {
                 statusText.textContent = "කරුණාකර ඇප් නාමය හෝ ID එකක් ඇතුලත් කරන්න.";
+                return;
+            }
+
+            statusText.textContent = "බාගැනීම ආරම්භවෙයි...";
+            const apiUrl = `https://www.dark-yasiya-api.site/download/apk?id=${appId}`;
+
+            try {
+                // Check the response from the server
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP දෝෂය! තත්වය: ${response.status}`);
+                }
+
+                // Get the file as a Blob
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                
+                // Create a temporary <a> tag for the download
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.setAttribute('download', `${appId}.apk`);
+                document.body.appendChild(link);
+                link.click();
+                
+                // Clean up
+                window.URL.revokeObjectURL(downloadUrl);
+                document.body.removeChild(link);
+                
+                statusText.textContent = "බාගැනීම සම්පූර්ණ වුණි!";
+            } catch (error) {
+                console.error('බාගැනීමේ දෝෂය:', error);
+                statusText.textContent = `දෝෂය: ${error.message || "APK බාගත කිරීමට නොහැකි විය"}`;
             }
         });
     </script>
