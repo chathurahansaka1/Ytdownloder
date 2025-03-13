@@ -3,579 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Downloader</title>
+    <title>YouTube Video Downloader</title>
     <style>
-        :root {
-            --primary-color: #ff0000;
-            --secondary-color: #0f0f0f;
-            --text-color: #333;
-            --light-color: #f4f4f4;
-            --error-color: #ff3333;
-            --success-color: #4CAF50;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
         body {
-            background-color: #f9f9f9;
-            color: var(--text-color);
-            line-height: 1.6;
-        }
-        
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        header h1 {
-            color: var(--primary-color);
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }
-        
-        header p {
-            color: var(--secondary-color);
-            font-size: 1rem;
-        }
-        
-        .download-form {
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
-        
-        .input-group {
-            margin-bottom: 20px;
-        }
-        
-        .input-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-        
-        .input-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 1rem;
-        }
-        
-        .input-group input:focus {
-            outline: none;
-            border-color: var(--primary-color);
-        }
-        
-        .btn {
-            display: inline-block;
-            background-color: var(--primary-color);
-            color: white;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background-color 0.3s ease;
-            font-weight: 600;
-        }
-        
-        .btn:hover {
-            background-color: #cc0000;
-        }
-        
-        .btn-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
-        .download-result {
-            background-color: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            margin-top: 20px;
-            display: none;
-        }
-        
-        .download-result h3 {
-            margin-bottom: 15px;
-            color: var(--secondary-color);
-        }
-        
-        .download-links {
+            font-family: Arial, sans-serif;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-        }
-        
-        .download-link {
-            display: block;
-            padding: 12px;
-            background-color: var(--light-color);
-            border-radius: 5px;
-            text-decoration: none;
-            color: var(--text-color);
-            font-weight: 600;
-            transition: background-color 0.3s ease;
-            text-align: center;
-        }
-        
-        .download-link:hover {
-            background-color: #e6e6e6;
-        }
-        
-        .video-info {
-            display: flex;
             align-items: center;
-            margin-bottom: 20px;
-            gap: 15px;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
         }
-        
-        .video-thumbnail {
-            width: 120px;
-            height: 90px;
-            object-fit: cover;
-            border-radius: 5px;
+        form {
+            display: flex;
+            flex-direction: column;
+            width: 300px;
         }
-        
-        .video-details h4 {
-            margin-bottom: 5px;
-            font-size: 1.1rem;
-        }
-        
-        .loader {
-            display: none;
-            text-align: center;
-            margin: 20px 0;
-        }
-        
-        .loader div {
-            width: 10px;
-            height: 10px;
-            background-color: var(--primary-color);
-            border-radius: 50%;
-            display: inline-block;
-            margin: 0 3px;
-            animation: bounce 1.5s infinite ease-in-out both;
-        }
-        
-        .loader div:nth-child(1) {
-            animation-delay: -0.32s;
-        }
-        
-        .loader div:nth-child(2) {
-            animation-delay: -0.16s;
-        }
-        
-        @keyframes bounce {
-            0%, 80%, 100% {
-                transform: scale(0);
-            }
-            40% {
-                transform: scale(1);
-            }
-        }
-        
-        .message {
+        input, button {
+            margin: 10px 0;
             padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            text-align: center;
-            font-weight: 600;
         }
-        
-        .error {
-            background-color: var(--error-color);
-            color: white;
-            display: none;
-        }
-        
-        .success {
-            background-color: var(--success-color);
-            color: white;
-            display: none;
-        }
-        
-        @media (max-width: 768px) {
-            header h1 {
-                font-size: 2rem;
-            }
-            
-            .container {
-                padding: 15px;
-            }
-            
-            .btn-group {
-                flex-direction: column;
-            }
-            
-            .video-info {
-                flex-direction: column;
-                text-align: center;
-            }
-            
-            .video-thumbnail {
-                width: 100%;
-                height: auto;
-                max-width: 240px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            header h1 {
-                font-size: 1.8rem;
-            }
-            
-            .download-form,
-            .download-result {
-                padding: 15px;
-            }
-            
-            .input-group input,
-            .btn {
-                padding: 10px;
-            }
-        }
-
-        footer {
-            text-align: center;
-            margin-top: 30px;
-            color: #777;
-            font-size: 0.9rem;
+        #loading {
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>YouTube Downloader</h1>
-            <p>Download videos and audio from YouTube easily</p>
-        </header>
-        
-        <div class="download-form">
-            <div class="message error" id="error-message"></div>
-            <div class="message success" id="success-message"></div>
-            
-            <div class="input-group">
-                <label for="youtube-url">Enter YouTube Video URL:</label>
-                <input type="text" id="youtube-url" placeholder="https://www.youtube.com/watch?v=example">
-            </div>
-            
-            <div class="btn-group">
-                <button class="btn" id="fetch-btn">Fetch Video</button>
-                <button class="btn" id="clear-btn">Clear</button>
-            </div>
-            
-            <div class="loader" id="loader">
-                <div></div>
-                <div></div>
-                <div></div>
-            </div>
-        </div>
-        
-        <div class="download-result" id="download-result">
-            <div class="video-info" id="video-info">
-                <img src="/api/placeholder/120/90" alt="Video thumbnail" class="video-thumbnail" id="video-thumbnail">
-                <div class="video-details">
-                    <h4 id="video-title">Video Title</h4>
-                    <p id="video-author">Channel Name</p>
-                </div>
-            </div>
-            
-            <h3>Download Options:</h3>
-            <div class="download-links" id="download-links">
-                <!-- Download links will be dynamically added here -->
-            </div>
-        </div>
-        
-        <footer>
-            <p>Built with ❤️ for easy YouTube downloads</p>
-        </footer>
-    </div>
-
+    <h1>Download YouTube Video</h1>
+    <form id="downloadForm">
+        <label for="url">YouTube Video URL:</label>
+        <input type="text" id="url" name="url" placeholder="https://www.youtube.com/watch?v=..." required>
+        <button type="submit">Download</button>
+    </form>
+    <div id="loading" style="display: none;">Loading...</div>
+    <div id="result"></div>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const urlInput = document.getElementById('youtube-url');
-            const fetchBtn = document.getElementById('fetch-btn');
-            const clearBtn = document.getElementById('clear-btn');
-            const loader = document.getElementById('loader');
-            const downloadResult = document.getElementById('download-result');
-            const downloadLinks = document.getElementById('download-links');
-            const errorMessage = document.getElementById('error-message');
-            const successMessage = document.getElementById('success-message');
-            const videoThumbnail = document.getElementById('video-thumbnail');
-            const videoTitle = document.getElementById('video-title');
-            const videoAuthor = document.getElementById('video-author');
-            
-            // API Endpoint
-            const API_URL = 'https://www.clipto.com/api/youtube';
-            
-            // YouTube URL validation regex
-            const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
-            
-            // Function to show error message
-            function showError(message) {
-                errorMessage.textContent = message;
-                errorMessage.style.display = 'block';
-                successMessage.style.display = 'none';
-                setTimeout(() => {
-                    errorMessage.style.display = 'none';
-                }, 5000);
-            }
-            
-            // Function to show success message
-            function showSuccess(message) {
-                successMessage.textContent = message;
-                successMessage.style.display = 'block';
-                errorMessage.style.display = 'none';
-                setTimeout(() => {
-                    successMessage.style.display = 'none';
-                }, 5000);
-            }
-            
-            // Function to extract video ID from YouTube URL
-            function extractVideoId(url) {
-                const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-                const match = url.match(regExp);
-                return (match && match[7].length === 11) ? match[7] : null;
-            }
-            
-            // Function to get video thumbnail
-            function getVideoThumbnail(videoId) {
-                return `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
-            }
-            
-            // Helper function to format file size
-            function formatFileSize(bytes) {
-                if (!bytes) return 'Unknown size';
-                const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-                if (bytes === 0) return '0 Byte';
-                const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
-                return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
-            }
-            
-            // Function to create a download proxy
-            function createDownloadProxy(url, filename) {
-                const iframe = document.createElement('iframe');
-                iframe.style.display = 'none';
-                document.body.appendChild(iframe);
-                
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = url;
-                
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'url';
-                input.value = urlInput.value.trim();
-                
-                form.appendChild(input);
-                iframe.contentDocument.body.appendChild(form);
-                
-                form.submit();
-                
-                setTimeout(() => {
-                    document.body.removeChild(iframe);
-                }, 5000);
-                
-                return true;
-            }
-            
-            // Function to fetch video information
-            async function fetchVideoInfo(url) {
-                try {
-                    if (!youtubeRegex.test(url)) {
-                        showError('Please enter a valid YouTube URL');
-                        return;
+        document.getElementById('downloadForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').innerText = '';
+            const url = document.getElementById('url').value;
+            fetch('https://www.clipto.com/api/youtube', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ url: url })
+            })
+            .then(response => {
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json().then(data => ({ data, isJson: true }));
+                } else {
+                    const disposition = response.headers.get('content-disposition');
+                    let filename = 'video.mp4';
+                    if (disposition && disposition.includes('filename=')) {
+                        filename = disposition.split('filename=')[1].replace(/"/g, '');
                     }
-                    
-                    loader.style.display = 'block';
-                    downloadResult.style.display = 'none';
-                    
-                    const response = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({ url: url })
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`API request failed with status ${response.status}`);
-                    }
-                    
-                    // Get the raw response text first to check if it’s valid JSON
-                    const text = await response.text();
-                    let data;
-                    try {
-                        data = JSON.parse(text);
-                    } catch (jsonError) {
-                        throw new Error('Invalid JSON response from API: ' + text);
-                    }
-                    
-                    const videoId = extractVideoId(url);
-                    if (videoId) {
-                        videoThumbnail.src = getVideoThumbnail(videoId);
-                    }
-                    
-                    videoTitle.textContent = data.title || 'YouTube Video';
-                    videoAuthor.textContent = data.author || 'YouTube Channel';
-                    
-                    downloadLinks.innerHTML = '';
-                    
-                    if (data.formats && Array.isArray(data.formats) && data.formats.length > 0) {
-                        data.formats.forEach((format, index) => {
-                            const link = document.createElement('a');
-                            const downloadUrl = format.url || API_URL;
-                            const safeTitle = (data.title || 'youtube_video').replace(/[^\w\s]/gi, '').replace(/\s+/g, '_');
-                            const extension = format.type ? format.type.split('/')[1] : 'mp4';
-                            const filename = `${safeTitle}_${format.quality || index}.${extension}`;
-                            
-                            link.href = downloadUrl;
-                            link.className = 'download-link';
-                            
-                            const quality = format.quality || (format.type && format.type.includes('audio') ? 'Audio' : 'Video');
-                            const type = format.type || 'video/mp4';
-                            const size = format.size ? formatFileSize(format.size) : 'Unknown size';
-                            
-                            link.textContent = `${quality} (${type}) - ${size}`;
-                            
-                            if (format.url) {
-                                link.setAttribute('download', filename);
-                                link.setAttribute('target', '_blank');
-                            } else {
-                                link.addEventListener('click', function(e) {
-                                    e.preventDefault();
-                                    createDownloadProxy(API_URL, filename);
-                                    showSuccess(`Download started for ${quality}`);
-                                });
-                            }
-                            
-                            downloadLinks.appendChild(link);
-                        });
+                    return response.blob().then(blob => ({ blob, filename, isJson: false }));
+                }
+            })
+            .then(({ data, blob, filename, isJson }) => {
+                document.getElementById('loading').style.display = 'none';
+                if (isJson) {
+                    if (data.error) {
+                        document.getElementById('result').innerText = 'Error: ' + data.error;
+                    } else if (data.downloadLink) {
+                        window.location.href = data.downloadLink;
                     } else {
-                        createFallbackOptions(url, videoId);
+                        document.getElementById('result').innerText = 'Error: Could not get download link.';
                     }
-                    
-                    downloadResult.style.display = 'block';
-                    showSuccess('Video information fetched successfully!');
-                    
-                } catch (error) {
-                    console.error('Error:', error);
-                    
-                    const videoId = extractVideoId(url);
-                    if (videoId) {
-                        videoThumbnail.src = getVideoThumbnail(videoId);
-                        videoTitle.textContent = 'YouTube Video';
-                        videoAuthor.textContent = 'YouTube Channel';
-                        createFallbackOptions(url, videoId);
-                        downloadResult.style.display = 'block';
-                    }
-                    
-                    showError(error.message || 'Failed to fetch video information. Using basic options.');
-                } finally {
-                    loader.style.display = 'none';
+                } else {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
                 }
-            }
-            
-            // Function to create fallback download options
-            function createFallbackOptions(url, videoId) {
-                downloadLinks.innerHTML = '';
-                
-                const formats = [
-                    { quality: '720p', type: 'video/mp4', label: 'HD Video (720p)' },
-                    { quality: '480p', type: 'video/mp4', label: 'Standard Video (480p)' },
-                    { quality: '360p', type: 'video/mp4', label: 'Low Quality Video (360p)' },
-                    { quality: 'Audio', type: 'audio/mp3', label: 'Audio Only (MP3)' }
-                ];
-                
-                formats.forEach(format => {
-                    const link = document.createElement('a');
-                    link.className = 'download-link';
-                    link.textContent = format.label;
-                    link.href = '#';
-                    
-                    link.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        
-                        const form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = API_URL;
-                        form.target = '_blank';
-                        
-                        const urlInput = document.createElement('input');
-                        urlInput.type = 'hidden';
-                        urlInput.name = 'url';
-                        urlInput.value = url;
-                        
-                        const formatInput = document.createElement('input');
-                        formatInput.type = 'hidden';
-                        formatInput.name = 'format';
-                        formatInput.value = format.quality;
-                        
-                        const typeInput = document.createElement('input');
-                        typeInput.type = 'hidden';
-                        typeInput.name = 'type';
-                        typeInput.value = format.type;
-                        
-                        form.appendChild(urlInput);
-                        form.appendChild(formatInput);
-                        form.appendChild(typeInput);
-                        
-                        document.body.appendChild(form);
-                        form.submit();
-                        
-                        setTimeout(() => {
-                            document.body.removeChild(form);
-                        }, 100);
-                        
-                        showSuccess(`Download started for ${format.label}`);
-                    });
-                    
-                    downloadLinks.appendChild(link);
-                });
-            }
-            
-            // Event listener for fetch button
-            fetchBtn.addEventListener('click', function() {
-                const url = urlInput.value.trim();
-                if (!url) {
-                    showError('Please enter a YouTube URL');
-                    return;
-                }
-                
-                fetchVideoInfo(url);
-            });
-            
-            // Event listener for clear button
-            clearBtn.addEventListener('click', function() {
-                urlInput.value = '';
-                downloadResult.style.display = 'none';
-                errorMessage.style.display = 'none';
-                successMessage.style.display = 'none';
-            });
-            
-            // Event listener for Enter key in input field
-            urlInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    fetchBtn.click();
-                }
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                console.error('Error:', error);
+                document.getElementById('result').innerText = 'An error occurred while fetching the download link.';
             });
         });
     </script>
