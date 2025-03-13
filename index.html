@@ -83,26 +83,29 @@
             const apiUrl = `https://www.dark-yasiya-api.site/download/apk?id=${appId}`;
 
             try {
-                // Check the response from the server
+                // Fetch the JSON response from the API
                 const response = await fetch(apiUrl);
-                
                 if (!response.ok) {
                     throw new Error(`HTTP දෝෂය! තත්වය: ${response.status}`);
                 }
 
-                // Get the file as a Blob
-                const blob = await response.blob();
-                const downloadUrl = window.URL.createObjectURL(blob);
-                
+                // Parse the JSON response
+                const data = await response.json();
+                if (!data.status || !data.result || !data.result.dl_link) {
+                    throw new Error("APK ගොනුව හමු නොවීය.");
+                }
+
+                // Get the download link from the JSON response
+                const downloadUrl = data.result.dl_link;
+
                 // Create a temporary <a> tag for the download
                 const link = document.createElement('a');
                 link.href = downloadUrl;
-                link.setAttribute('download', `${appId}.apk`);
+                link.setAttribute('download', `${data.result.package}.apk`);
                 document.body.appendChild(link);
                 link.click();
                 
                 // Clean up
-                window.URL.revokeObjectURL(downloadUrl);
                 document.body.removeChild(link);
                 
                 statusText.textContent = "බාගැනීම සම්පූර්ණ වුණි!";
