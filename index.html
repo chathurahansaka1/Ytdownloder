@@ -1,119 +1,142 @@
 <!DOCTYPE html>
 <html lang="si">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>APK බාගත කිරීම</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f4f4f9;
-            margin: 0;
-        }
-        .container {
-            text-align: center;
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            width: 300px;
-        }
-        input[type="text"] {
-            padding: 10px;
-            width: 80%;
-            font-size: 16px;
-            margin: 10px 0;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-        }
-        #downloadBtn {
-            background-color: #007bff;
-            color: #fff;
-            border: none;
-            padding: 10px 20px;
-            cursor: pointer;
-            border-radius: 5px;
-            font-size: 16px;
-        }
-        #downloadBtn:hover {
-            background-color: #0056b3;
-        }
-        #downloadBtn:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-        #status {
-            margin-top: 20px;
-            font-size: 14px;
-            color: #ff0000;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Video Downloader</title>
+  <style>
+    /* CSS Styling */
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .result {
+      margin-top: 20px;
+    }
+    .thumbnail {
+      max-width: 200px;
+      display: block;
+      margin-bottom: 10px;
+    }
+    .media-list a {
+      display: block;
+      padding: 10px;
+      background: #e7e7e7;
+      margin-bottom: 8px;
+      text-decoration: none;
+      color: #333;
+      border-radius: 4px;
+    }
+    .media-list a:hover {
+      background: #d7d7d7;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>APK බාගත කිරීම</h1>
-        <input type="text" id="appSearch" placeholder="ඇප් නාමය හෝ ID ඇතුළත් කරන්න">
-        <button id="downloadBtn" disabled>බාගත කරන්න</button>
-        <p id="status"></p>
+  <div class="container">
+    <h1>YouTube Video Downloader</h1>
+    <input type="text" id="videoUrl" placeholder="Enter YouTube video URL here">
+    <button id="downloadBtn">Get Video Details & Download</button>
+    
+    <div class="result" id="result" style="display: none;">
+      <h2 id="videoTitle"></h2>
+      <img id="thumbnail" src="" alt="Thumbnail" class="thumbnail">
+      <p id="duration"></p>
+      <h3>Download Options:</h3>
+      <div class="media-list" id="mediaList"></div>
     </div>
+  </div>
 
-    <script>
-        const downloadBtn = document.getElementById("downloadBtn");
-        const statusText = document.getElementById("status");
-        const appSearchInput = document.getElementById("appSearch");
-
-        // Enable the "Download" button when the user enters app ID or name
-        appSearchInput.addEventListener("input", function() {
-            downloadBtn.disabled = this.value.trim() === "";
-        });
-
-        // When the "Download" button is clicked
-        downloadBtn.addEventListener("click", async function() {
-            const appId = appSearchInput.value.trim(); // Get the app ID or name from the input
-            if (!appId) {
-                statusText.textContent = "කරුණාකර ඇප් නාමය හෝ ID එකක් ඇතුලත් කරන්න.";
-                return;
-            }
-
-            statusText.textContent = "බාගැනීම ආරම්භවෙයි...";
-            const apiUrl = `https://www.dark-yasiya-api.site/download/apk?id=${appId}`;
-
-            try {
-                // Fetch the JSON response from the API
-                const response = await fetch(apiUrl);
-                if (!response.ok) {
-                    throw new Error(`HTTP දෝෂය! තත්වය: ${response.status}`);
-                }
-
-                // Parse the JSON response
-                const data = await response.json();
-                if (!data.status || !data.result || !data.result.dl_link) {
-                    throw new Error("APK ගොනුව හමු නොවීය.");
-                }
-
-                // Get the download link from the JSON response
-                const downloadUrl = data.result.dl_link;
-
-                // Create a temporary <a> tag for the download
-                const link = document.createElement('a');
-                link.href = downloadUrl;
-                link.setAttribute('download', `${data.result.package}.apk`);
-                document.body.appendChild(link);
-                link.click();
-                
-                // Clean up
-                document.body.removeChild(link);
-                
-                statusText.textContent = "බාගැනීම සම්පූර්ණ වුණි!";
-            } catch (error) {
-                console.error('බාගැනීමේ දෝෂය:', error);
-                statusText.textContent = `දෝෂය: ${error.message || "APK බාගත කිරීමට නොහැකි විය"}`;
-            }
-        });
-    </script>
+  <script>
+    // Button click event: API call and display results
+    document.getElementById("downloadBtn").addEventListener("click", function() {
+      var videoUrl = document.getElementById("videoUrl").value.trim();
+      if(videoUrl === "") {
+        alert("කරුණාකර වලංගු YouTube video URL එකක් ඇතුළත් කරන්න.");
+        return;
+      }
+      
+      // Clear previous results
+      document.getElementById("result").style.display = "none";
+      document.getElementById("mediaList").innerHTML = "";
+      
+      // API call using fetch
+      fetch("https://www.clipto.com/api/youtube", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ url: videoUrl })
+      })
+      .then(function(response) {
+        if (!response.ok) {
+          throw new Error("API call failed with status " + response.status);
+        }
+        return response.json();
+      })
+      .then(function(data) {
+        console.log(data);
+        if(data.success) {
+          // Display video details
+          document.getElementById("result").style.display = "block";
+          document.getElementById("videoTitle").textContent = data.title;
+          document.getElementById("thumbnail").src = data.thumbnail;
+          
+          // Format duration (seconds to minutes & seconds)
+          var durationSec = data.duration;
+          var minutes = Math.floor(durationSec / 60);
+          var seconds = Math.floor(durationSec % 60);
+          document.getElementById("duration").textContent = "කාලය: " + minutes + " මිනිත්තු " + seconds + " තත්පර";
+          
+          // Create download links for each available media stream
+          var mediaList = document.getElementById("mediaList");
+          data.medias.forEach(function(media) {
+            var link = document.createElement("a");
+            link.href = media.url;
+            link.textContent = "Download " + media.quality + " (" + media.extension + ")" + (media.is_audio ? " - Audio" : "");
+            link.target = "_blank"; // Open in new tab
+            mediaList.appendChild(link);
+          });
+        } else {
+          alert("දෝෂයකි: " + data.message);
+        }
+      })
+      .catch(function(error) {
+        console.error("Error:", error);
+        alert("An error occurred: " + error.message);
+      });
+    });
+  </script>
 </body>
 </html>
